@@ -139,7 +139,6 @@ public class RoomsFragment extends Fragment {
 
             @Override
             protected void onPostExecute(List<RoomsTable> notes) {
-                Log.i(TAG, "onPostExecute: " + notes.get(0).getRoomName());
                 mRooms.clear();
                 mRooms.addAll(notes);
             }
@@ -210,9 +209,15 @@ public class RoomsFragment extends Fragment {
                                     }
                                     int unreadItems = dynamicJObject.getInt("unreadItems");
                                     int mentions = dynamicJObject.getInt("mentions");
+                                    String topic = dynamicJObject.getString("topic");
+
                                     boolean roomMember = dynamicJObject.getBoolean("roomMember");
                                     Log.i(TAG, "run: " + dynamicJObject.toString());
 
+//
+
+
+//
 //                                    // Get the current max id in the EntityName table
                                     int maxId = dao.getMax();
                                     Log.i(TAG, "onPostExecute: dao max" + dao.getMax());
@@ -232,6 +237,7 @@ public class RoomsFragment extends Fragment {
                                     final RoomsTable room = new RoomsTable();
                                     room.setId(nextId);
                                     room.setuId(uId);
+                                    room.setTopic(topic);
                                     room.setRoomName(name);
                                     room.setUserCount(userCount);
                                     room.setUnreadItems(unreadItems);
