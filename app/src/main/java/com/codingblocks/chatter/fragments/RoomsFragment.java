@@ -3,6 +3,7 @@ package com.codingblocks.chatter.fragments;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
@@ -13,10 +14,15 @@ import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.SearchView;
 import android.widget.Toast;
 
+import com.codingblocks.chatter.MessagesDatabase;
 import com.codingblocks.chatter.NoNetworkActivity;
 import com.codingblocks.chatter.R;
 import com.codingblocks.chatter.RoomsDatabase;
@@ -50,8 +56,12 @@ public class RoomsFragment extends Fragment {
     RoomsDatabase db;
     RoomsDao dao;
     String filter;
+    SharedPreferences sharedPreferences;
+    RoomsDatabase roomdb;
+    MessagesDatabase messagesDatabase;
 
     public static RoomsFragment newInstance(String filter) {
+
 
         RoomsFragment bottomSheetFragment = new RoomsFragment();
         Bundle bundle = new Bundle();
@@ -81,11 +91,17 @@ public class RoomsFragment extends Fragment {
         filter = getArguments().getString("filter");
         db = RoomsDatabase.getInstance(getContext());
         dao = db.roomsDao();
+        //for deleting db on SignOut
+        roomdb = RoomsDatabase.getInstance(getContext());
+        messagesDatabase = MessagesDatabase.getInstance(getContext());
 
         RecyclerView.LayoutManager layoutManager =
                 new LinearLayoutManager(getContext());
         recyclerView.setLayoutManager(layoutManager);
         displayRooms(mRooms, filter);
+        setHasOptionsMenu(true);
+        sharedPreferences =
+                getActivity().getSharedPreferences("UserPreferences", 0);
 
         return view;
     }
@@ -194,12 +210,9 @@ public class RoomsFragment extends Fragment {
                                     }
                                     int unreadItems = dynamicJObject.getInt("unreadItems");
                                     int mentions = dynamicJObject.getInt("mentions");
+                                    boolean roomMember = dynamicJObject.getBoolean("roomMember");
                                     Log.i(TAG, "run: " + dynamicJObject.toString());
 
-//
-
-
-//
 //                                    // Get the current max id in the EntityName table
                                     int maxId = dao.getMax();
                                     Log.i(TAG, "onPostExecute: dao max" + dao.getMax());
@@ -224,6 +237,7 @@ public class RoomsFragment extends Fragment {
                                     room.setUnreadItems(unreadItems);
                                     room.setMentions(mentions);
                                     room.setRoomAvatar(url);
+                                    room.setRoomMember(roomMember);
 //
 //                                    // Begin, copy and commit
 ////                                    realm.beginTransaction();
@@ -294,4 +308,124 @@ public class RoomsFragment extends Fragment {
             getActivity().finish();
         }
     }
+
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.my_options_menu, menu);
+        MenuItem item = menu.findItem(R.id.search);
+        SearchView searchView = (SearchView) item.getActionView();
+        searchView.setOnCloseListener(new SearchView.OnCloseListener() {
+            @Override
+            public boolean onClose() {
+                displayRooms(mRooms, filter);
+                return false;
+            }
+        });
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                mRooms.clear();
+                adapter.notifyDataSetChanged();
+                searchRooms(newText);
+                return true;
+            }
+        });
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
+    private void searchRooms(String newText) {
+        if (isNetworkAvailable()) {
+            /* Display a toast to inform the user that we are syncing */
+            String accessToken = getActivity()
+                    .getSharedPreferences("UserPreferences", 0)
+                    .getString("accessToken", "");
+            if (accessToken.equals("")) {
+                Intent intent = new Intent(getActivity(), SplashActivity.class);
+                getActivity().startActivity(intent);
+                getActivity().finish();
+            }
+            Request request = new Request.Builder()
+                    .url("https://api.gitter.im/v1/rooms?q=" + newText)
+                    .build();
+            HttpUrl url = request.url().newBuilder()
+                    .addQueryParameter("access_token", accessToken)
+                    .build();
+            request = request.newBuilder().url(url).build();
+            client.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(@NonNull Call call, @NonNull IOException e) {
+                    e.printStackTrace();
+                }
+
+                @Override
+                public void onResponse(@NonNull Call call, @NonNull Response response)
+                        throws IOException {
+                    /* Simple hack for compatibility as API 19 is required for
+                       new JSONArray */
+                    final String responseText = response.body().string();
+                    // We will move to UI Thread
+                    Thread thread = new Thread(new Runnable() {
+                        @SuppressLint("StaticFieldLeak")
+                        @Override
+                        public void run() {
+                            try {
+                                JSONObject JObject = new JSONObject(responseText);
+                                Log.i(TAG, "run: " + responseText);
+                                JSONArray JArray = JObject.getJSONArray("results");
+                                int i;
+                                for (i = 0; i < JArray.length(); i++) {
+                                    JSONObject dynamicJObject = JArray.getJSONObject(i);
+                                    String githubType = dynamicJObject.getString("githubType");
+                                    final String uId = dynamicJObject.getString("id");
+                                    String name = dynamicJObject.getString("name");
+                                    String url = dynamicJObject.getString("avatarUrl");
+                                    // userCount = 0 == user to user room since ONETWOONE doesnot have it
+                                    int userCount = 0;
+                                    if (!githubType.equals("ONETWOONE")) {
+                                        userCount = dynamicJObject.getInt("userCount");
+                                    }
+                                    int unreadItems = dynamicJObject.getInt("unreadItems");
+                                    int mentions = dynamicJObject.getInt("mentions");
+                                    boolean roomMember = dynamicJObject.getBoolean("roomMember");
+                                    Log.i(TAG, "run: " + dynamicJObject.toString());
+                                    final RoomsTable room = new RoomsTable();
+                                    room.setuId(uId);
+                                    room.setRoomName(name);
+                                    room.setUserCount(userCount);
+                                    room.setUnreadItems(unreadItems);
+                                    room.setMentions(mentions);
+                                    room.setRoomAvatar(url);
+                                    room.setRoomMember(roomMember);
+                                    mRooms.add(room);
+                                }
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                            } finally {
+                                getActivity().runOnUiThread(new Runnable() {
+                                    @Override
+                                    public void run() {
+                                        adapter.notifyDataSetChanged();
+                                    }
+                                });
+                            }
+                        }
+                    });
+                    thread.start();
+                }
+            });
+            /* Prompt user to turn on internet only if we have no rooms */
+        } else {
+            Intent intent = new Intent(getActivity(), NoNetworkActivity.class);
+            intent.putExtra("calledFrom", "DashboardActivity");
+            getActivity().startActivity(intent);
+            getActivity().finish();
+        }
+    }
+
+
 }
