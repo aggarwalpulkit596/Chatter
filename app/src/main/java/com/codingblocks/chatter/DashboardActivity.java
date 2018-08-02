@@ -151,9 +151,13 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
                 DashboardActivity.this.startActivity(intent);
                 DashboardActivity.this.finish();
             }
+        } else {
+            txtName.setText(username);
+            txtDisplayName.setText(displayName);
+            Picasso.get().load(avatarUrl).into(imgProfile);
         }
         FragmentTransaction transaction = getSupportFragmentManager().beginTransaction();
-        transaction.replace(R.id.fragment_holder, new RoomsFragment());
+        transaction.replace(R.id.fragment_holder, RoomsFragment.newInstance("all"), "Room");
         transaction.commit();
 
     }
@@ -165,7 +169,7 @@ public class DashboardActivity extends AppCompatActivity implements NavigationVi
         return activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
-    public void openRoom(String id, String roomName, int userCount,boolean roomMember, String favourtie) {
+    public void openRoom(String id, String roomName, int userCount, boolean roomMember, String favourtie) {
         Bundle bundle = new Bundle();
         bundle.putString("RoomId", id);
         bundle.putString("RoomName", roomName);
