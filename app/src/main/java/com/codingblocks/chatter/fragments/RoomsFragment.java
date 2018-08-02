@@ -25,7 +25,9 @@ import android.widget.Toast;
 import com.codingblocks.chatter.MessagesDatabase;
 import com.codingblocks.chatter.NoNetworkActivity;
 import com.codingblocks.chatter.R;
+import com.codingblocks.chatter.models.RoomsDao;
 import com.codingblocks.chatter.RoomsDatabase;
+import com.codingblocks.chatter.db.RoomsTable;
 import com.codingblocks.chatter.SplashActivity;
 import com.codingblocks.chatter.adapters.RoomsAdapter;
 import com.codingblocks.chatter.db.RoomsTable;
@@ -126,7 +128,6 @@ public class RoomsFragment extends Fragment {
 
             @Override
             protected List<RoomsTable> doInBackground(Void... voids) {
-                Log.i(TAG, "doInBackground: " + filter);
                 switch (filter) {
                     case "All":
                         return dao.getAllRooms();
@@ -209,6 +210,10 @@ public class RoomsFragment extends Fragment {
                                     }
                                     int unreadItems = dynamicJObject.getInt("unreadItems");
                                     int mentions = dynamicJObject.getInt("mentions");
+                                    String favourite = null;
+                                    if (!dynamicJObject.isNull("favourite"))
+                                        favourite = (dynamicJObject.getString("favourite"));
+                                    Log.i(TAG, "run: " + favourite);
                                     String topic = dynamicJObject.getString("topic");
 
                                     boolean roomMember = dynamicJObject.getBoolean("roomMember");
@@ -243,6 +248,7 @@ public class RoomsFragment extends Fragment {
                                     room.setUnreadItems(unreadItems);
                                     room.setMentions(mentions);
                                     room.setRoomAvatar(url);
+                                    room.setFavourite(favourite);
                                     room.setRoomMember(roomMember);
 //
 //                                    // Begin, copy and commit
