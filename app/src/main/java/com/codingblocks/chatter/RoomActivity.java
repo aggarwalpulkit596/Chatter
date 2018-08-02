@@ -21,8 +21,10 @@ import java.io.IOException;
 
 import okhttp3.Call;
 import okhttp3.Callback;
+import okhttp3.FormBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
 
 public class RoomActivity extends AppCompatActivity {
@@ -36,13 +38,20 @@ public class RoomActivity extends AppCompatActivity {
 
     MessagesDatabase messagesDatabase;
     MessagesDao messagesDao;
-
+    String accessToken;
+    String uid;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_room);
-
+        accessToken = this
+                .getSharedPreferences("UserPreferences", 0)
+                .getString("accessToken", "");
+        uid = this
+                .getSharedPreferences("UserPreferences", 0)
+                .getString("idOfUser", "");
+        Log.i("TAG", "onResponse: " + uid + accessToken);
         Intent i = getIntent();
         Bundle bundle = i.getExtras();
         roomId = (String) bundle.get("RoomId");
@@ -61,13 +70,7 @@ public class RoomActivity extends AppCompatActivity {
     }
 
     private void leaveRoom(final String roomId) {
-        final String accessToken = this
-                .getSharedPreferences("UserPreferences", 0)
-                .getString("accessToken", "");
-        String uid = this
-                .getSharedPreferences("UserPreferences", 0)
-                .getString("idOfUser", "");
-        Log.i("TAG", "onResponse: " + uid + accessToken);
+
 
         final Request request = new Request.Builder()
                 .url("https://api.gitter.im/v1/rooms/"
@@ -146,9 +149,42 @@ public class RoomActivity extends AppCompatActivity {
             case R.id.leaveRoom:
                 leaveRoom(roomId);
                 break;
+            case R.id.markRead:
+                markRed(roomId);
+                break;
 
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void markRed(String roomId) {
+        RequestBody requestBody = new FormBody.Builder()
+                .add("favourite", "true")
+                .build();
+        final Request request = new Request.Builder()
+                .url("https://api.gitter.im/v1/"
+                        + "user/"
+                        + uid +
+                        "/rooms/"
+                        + roomId +
+                        "/unreadItems/all"
+                )
+                .addHeader("Accept", "application/json")
+                .addHeader("Authorization", "Bearer " + accessToken)
+                .delete()
+                .build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+
+            }
+        });
+
     }
 
 }
