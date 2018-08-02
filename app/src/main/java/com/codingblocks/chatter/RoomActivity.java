@@ -166,6 +166,9 @@ public class RoomActivity extends AppCompatActivity {
             case R.id.leaveRoom:
                 leaveRoom(roomId);
                 break;
+            case R.id.markRead:
+                markRed(roomId);
+                break;
             case R.id.aboutRoom:
                 roominfo(roomId);
                 break;
@@ -246,6 +249,37 @@ public class RoomActivity extends AppCompatActivity {
         });
 
     }
+    private void markRed(String roomId) {
+        RequestBody requestBody = new FormBody.Builder()
+                .add("favourite", "true")
+                .build();
+        final Request request = new Request.Builder()
+                .url("https://api.gitter.im/v1/"
+                        + "user/"
+                        + uid +
+                        "/rooms/"
+                        + roomId +
+                        "/unreadItems/all"
+                )
+                .addHeader("Accept", "application/json")
+                .addHeader("Authorization", "Bearer " + accessToken)
+                .delete()
+                .build();
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+
+            }
+
+            @Override
+            public void onResponse(Call call, Response response) throws IOException {
+
+            }
+        });
+
+    }
+
+}
 
 }
 
