@@ -131,7 +131,7 @@ public class MessagesAdapter extends RecyclerView.Adapter<MessagesAdapter.MyView
         final List<Users> mUsers = new ArrayList<>();
         RecyclerView mUserRecyclerView;
         mUserRecyclerView = dialog.findViewById(R.id.usersRecyclerView);
-        adapter = new UsersAdapter(mUsers, context);
+        adapter = new UsersAdapter(mUsers, context,1);
         mUserRecyclerView.setHasFixedSize(true);
         mUserRecyclerView.setLayoutManager(new GridLayoutManager(context, 5));
         mUserRecyclerView.setAdapter(adapter);
