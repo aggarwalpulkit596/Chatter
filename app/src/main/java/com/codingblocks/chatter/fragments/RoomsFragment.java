@@ -129,9 +129,21 @@ public class RoomsFragment extends Fragment {
                 .getString("idOfUser", "");
 // Initial Meta Message
         MetaMessage meta = new MetaMessage();
-// Initinal FayeClient
-        FayeClient mClient = new FayeClient("wws://fayesample.com/fayeservice", meta);
+        JSONObject jsonId = new JSONObject();
+        try {
+            jsonId.put("accesstoken", accessToken);
+        } catch (Exception e) {
 
+        }
+        meta.setAllExt(jsonId.toString());
+        try {
+            meta.connect();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+// Initinal FayeClient
+        FayeClient mClient = new FayeClient("https://ws.gitter.im/bayeux", meta);
 // Set FayeClient listener
         mClient.setListener(new FayeClientListener() {
             @Override
@@ -150,8 +162,11 @@ public class RoomsFragment extends Fragment {
             }
         });
 
+
 // Connect to server
-        mClient.connectServer();;
+        mClient.connectServer();
+
+        mClient.addChannel("/api/v1/user/" + userId + "/rooms");
     }
 
     public boolean isNetworkAvailable() {
